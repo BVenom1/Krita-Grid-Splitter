@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=grid_splitter
+X-Python-2-Compatible=false
+X-Krita-Manual=Manual.html
+Name=Grid Splitter
+Comment=Docker to split current active layer into separate images along a rectangular grid
