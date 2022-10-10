@@ -47,7 +47,23 @@ class GridSplitter(DockWidget):
     # secondary setup function
     def on_windowCreated(self):
         self.window = Krita.instance().activeWindow()
-        self.window.activeViewChanged.connect(self.debugPopup)
+        self.window.activeViewChanged.connect(self.update)
+    
+    # function to update ranges of width and height
+    def update(self):
+        if self.window.activeView() == None:
+            self.width = 0
+            self.height = 0
+            self.wbox.setRange(0, 0)
+            self.hbox.setRange(0, 0)
+            self.doc = None
+        
+        else:
+            self.doc = self.window.activeView().document()
+            self.width = self.doc.bounds().width()
+            self.height = self.doc.bounds().height()
+            self.wbox.setRange(1, self.width)
+            self.hbox.setRange(1, self.height)
     
     # generic popup message function
     def popup(self, string: str):
