@@ -26,6 +26,11 @@ class GridSplitter(DockWidget):
         self.hbox.setSuffix('px')
         hlabel = QLabel('split height : ', self)     # label in the widget
 
+        # set up dropdown menu for file type
+        self.tbox = QComboBox(self)
+        self.tbox.addItems(['.png', '.jpg', '.bmp', '.ppm'])
+        tlabel = QLabel('save file extension : ', self)
+
         # set up button to split the layer and save it
         self.splitButton = QPushButton('split', self)
         self.splitButton.clicked.connect(self.on_splitButton_clicked)
@@ -34,6 +39,7 @@ class GridSplitter(DockWidget):
         self.mainWidget.setLayout(QFormLayout())
         self.mainWidget.layout().addRow(wlabel, self.wbox)
         self.mainWidget.layout().addRow(hlabel, self.hbox)
+        self.mainWidget.layout().addRow(tlabel, self.tbox)
         self.mainWidget.layout().addRow(self.splitButton)
 
         # set up some additional fields
@@ -86,7 +92,44 @@ class GridSplitter(DockWidget):
         
         basename = activeNode.uniqueId().toByteArray(1)
 
-        self.popup('on path to splitting image')
+        filestem = f'{dirpath}/{basename}'
+
+        sp_w = self.wbox.value()
+        sp_h = self.hbox.value()
+        ext = self.tbox.currentText()
+
+        num_splits_w = self.width // sp_w
+        num_splits_h = self.height // sp_h
+        frac_w = self.width % sp_w
+        frac_h = self.height % sp_h
+
+        for i in range(0, num_splits_h):
+            for j in range(0, num_splits_w):
+                activeNode.save(f'{filestem}-{i:d}-{j:d}{ext}', 
+                                self.xRes, self.yRes, 
+                                InfoObject(), 
+                                QRect(j*sp_w, i*sp_h, sp_w, sp_h))
+            
+            if frac_w != 0:
+                activeNode.save(f'{filestem}-{i:d}-{num_splits_w:d}{ext}', 
+                                self.xRes, self.yRes, 
+                                InfoObject(), 
+                                QRect(num_splits_w*sp_w, i*sp_h, frac_w, sp_h))
+        
+        if frac_h != 0:
+            for j in range(0, num_splits_w):
+                activeNode.save(f'{filestem}-{num_splits_h:d}-{j:d}{ext}', 
+                                self.xRes, self.yRes, 
+                                InfoObject(), 
+                                QRect(j*sp_w, num_splits_h*sp_h, sp_w, frac_h))
+            
+            if frac_w != 0:
+                activeNode.save(f'{filestem}-{num_splits_h:d}-{num_splits_w:d}{ext}', 
+                                self.xRes, self.yRes, 
+                                InfoObject(), 
+                                QRect(num_splits_w*sp_w, num_splits_h*sp_h, frac_w, frac_h))
+
+        self.popup('go check')
     
     # generic popup message function
     def popup(self, string: str):
