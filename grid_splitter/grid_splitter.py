@@ -2,7 +2,7 @@ from krita import *
 from PyQt5.QtWidgets import *
 from PyQt5.Qt import *
 
-DOCKER_TITLE = 'Grid Splitter'
+DOCKER_TITLE = "BVenom's Grid Splitter"
 
 class GridSplitter(DockWidget):
 
@@ -69,6 +69,10 @@ class GridSplitter(DockWidget):
         if dirpath == '':
             self.popup('No seves folder selected, split aborted')
             return
+        
+        # set up a progress bar
+        progressBar = QProgressBar(self)
+        self.mainWidget.layout().addRow(progressBar)
 
         # get base file path to save the splits
         basename = activeNode.uniqueId().toByteArray(1)
@@ -86,7 +90,6 @@ class GridSplitter(DockWidget):
         frac_h = self.height % sp_h
 
         # make a progress bar
-        progressBar = QProgressDialog('Splitting active layer', 'Cancel', 0, 1)
         temp1 = num_splits_h
         if frac_h != 0 :
             temp1 += 1
@@ -94,7 +97,7 @@ class GridSplitter(DockWidget):
         if frac_w != 0:
             temp2 += 1
         progressBar.setMaximum(temp1*temp2-1)
-        progressBar.setCancelButton(None)
+        progressBar.setValue(progressBar.value()+1)
 
         # split the images and save them
         for i in range(0, num_splits_h):
@@ -122,6 +125,9 @@ class GridSplitter(DockWidget):
                                 self.xRes, self.yRes, self.saveInfo,
                                 QRect(num_splits_w*sp_w, num_splits_h*sp_h, frac_w, frac_h))
                 progressBar.setValue(progressBar.value()+1)
+        
+        self.mainWidget.layout().removeRow(4)       # remove the progress bar
+        self.popup('Active layer has been split')
     
     # generic popup message function
     def popup(self, string: str):
