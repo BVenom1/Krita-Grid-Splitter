@@ -48,6 +48,7 @@ class GridSplitter(DockWidget):
         self.doc = None                 # document reference of open image
         self.xRes = 72                  # x-resolution of image (pixels per inch)
         self.yRes = 72                  # y-resolution of image (pixels per inch)
+        self.window = None
 
         # InfoObject to pass to save function
         self.saveInfo = InfoObject()
@@ -55,11 +56,16 @@ class GridSplitter(DockWidget):
         # jpeg properties
         self.saveInfo.setProperty('quality', 100)
         self.saveInfo.setProperty('optimize', True)
-        self.saveInfo.setProperty('subsampling', 0)  
+        self.saveInfo.setProperty('subsampling', 0)
+
+        Krita.instance().notifier().windowCreated.connect(self.on_windowCreated)
+    
+    def on_windowCreated(self):
+        self.window = Krita.instance().activeWindow()
     
     # function called when splitButton is clicked, splits the current active layer and saves the splits to given folder
     def on_splitButton_clicked(self):
-        if len(self.window.views()) == 0:
+        if self.window == None or len(self.window.views()) == 0:
             self.popup('ERROR: no document is open')
             return
         
@@ -140,7 +146,6 @@ class GridSplitter(DockWidget):
     # notifies when views are added or removed
     # 'pass' means do not do anything
     def canvasChanged(self, canvas):
-        self.window = Krita.instance().activeWindow()
         if self.window == None:
             return
 
