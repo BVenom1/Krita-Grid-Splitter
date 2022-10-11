@@ -28,7 +28,7 @@ class GridSplitter(DockWidget):
 
         # set up dropdown menu for file type
         self.tbox = QComboBox(self)
-        self.tbox.addItems(['.png', '.jpg', '.bmp', '.ppm'])
+        self.tbox.addItems(['.png', '.jpg', '.jpeg', '.bmp', '.ppm'])
         tlabel = QLabel('save file extension : ', self)
 
         # set up button to split the layer and save it
@@ -48,6 +48,14 @@ class GridSplitter(DockWidget):
         self.doc = None                 # document reference of open image
         self.xRes = 72                  # x-resolution of image (pixels per inch)
         self.yRes = 72                  # y-resolution of image (pixels per inch)
+
+        # InfoObject to pass to save function
+        self.saveInfo = InfoObject()
+        
+        # jpeg properties
+        self.saveInfo.setProperty('quality', 100)
+        self.saveInfo.setProperty('optimize', True)
+        self.saveInfo.setProperty('subsampling', 0)
 
         # call a second set up function to finish the set up when the main window is fully loaded
         Krita.instance().notifier().windowCreated.connect(self.on_windowCreated)
@@ -89,47 +97,59 @@ class GridSplitter(DockWidget):
         if dirpath == '':
             self.popup('No seves folder selected, split aborted')
             return
-        
-        basename = activeNode.uniqueId().toByteArray(1)
 
+        # get base file path to save the splits
+        basename = activeNode.uniqueId().toByteArray(1)
         filestem = f'{dirpath}/{basename}'
 
+        # get split width, split height and file extension from docker
         sp_w = self.wbox.value()
         sp_h = self.hbox.value()
         ext = self.tbox.currentText()
 
+        # get number of full splits and dimensions of fractional splits
         num_splits_w = self.width // sp_w
         num_splits_h = self.height // sp_h
         frac_w = self.width % sp_w
         frac_h = self.height % sp_h
 
+        # make a progress bar
+        progressBar = QProgressDialog('Splitting active layer', 'Cancel', 0, 1)
+        temp1 = num_splits_h
+        if frac_h != 0 :
+            temp1 += 1
+        temp2 = num_splits_w
+        if frac_w != 0:
+            temp2 += 1
+        progressBar.setMaximum(temp1*temp2-1)
+        progressBar.setCancelButton(None)
+
+        # split the images and save them
         for i in range(0, num_splits_h):
-            for j in range(0, num_splits_w):
+            for j in range(0, num_splits_w):                            # block to get all sp_w x sp_h sized splits
                 activeNode.save(f'{filestem}-{i:d}-{j:d}{ext}', 
-                                self.xRes, self.yRes, 
-                                InfoObject(), 
+                                self.xRes, self.yRes, self.saveInfo,
                                 QRect(j*sp_w, i*sp_h, sp_w, sp_h))
+                progressBar.setValue(progressBar.value()+1)
             
-            if frac_w != 0:
+            if frac_w != 0:                                             # block to get all frac_w x sp_h sized splits
                 activeNode.save(f'{filestem}-{i:d}-{num_splits_w:d}{ext}', 
-                                self.xRes, self.yRes, 
-                                InfoObject(), 
+                                self.xRes, self.yRes, self.saveInfo,
                                 QRect(num_splits_w*sp_w, i*sp_h, frac_w, sp_h))
+                progressBar.setValue(progressBar.value()+1)
         
         if frac_h != 0:
-            for j in range(0, num_splits_w):
+            for j in range(0, num_splits_w):                            # block to get all sp_w x frac_h sized splits
                 activeNode.save(f'{filestem}-{num_splits_h:d}-{j:d}{ext}', 
-                                self.xRes, self.yRes, 
-                                InfoObject(), 
+                                self.xRes, self.yRes, self.saveInfo,
                                 QRect(j*sp_w, num_splits_h*sp_h, sp_w, frac_h))
+                progressBar.setValue(progressBar.value()+1)
             
-            if frac_w != 0:
+            if frac_w != 0:                                             # block to get the frac_w x frac_h sized split
                 activeNode.save(f'{filestem}-{num_splits_h:d}-{num_splits_w:d}{ext}', 
-                                self.xRes, self.yRes, 
-                                InfoObject(), 
+                                self.xRes, self.yRes, self.saveInfo,
                                 QRect(num_splits_w*sp_w, num_splits_h*sp_h, frac_w, frac_h))
-
-        self.popup('go check')
+                progressBar.setValue(progressBar.value()+1)
     
     # generic popup message function
     def popup(self, string: str):
