@@ -55,35 +55,7 @@ class GridSplitter(DockWidget):
         # jpeg properties
         self.saveInfo.setProperty('quality', 100)
         self.saveInfo.setProperty('optimize', True)
-        self.saveInfo.setProperty('subsampling', 0)
-
-        # call a second set up function to finish the set up when the main window is fully loaded
-        Krita.instance().notifier().windowCreated.connect(self.on_windowCreated)
-
-    # secondary setup function
-    def on_windowCreated(self):
-        self.window = Krita.instance().activeWindow()
-        self.window.activeViewChanged.connect(self.update)
-    
-    # function to update ranges of width and height
-    def update(self):
-        if self.window.activeView() == None:
-            self.width = 0
-            self.height = 0
-            self.wbox.setRange(0, 0)
-            self.hbox.setRange(0, 0)
-            self.doc = None
-            self.xRes = 72
-            self.yRes = 72
-        
-        else:
-            self.doc = self.window.activeView().document()
-            self.width = self.doc.width()
-            self.height = self.doc.height()
-            self.wbox.setRange(1, self.width)
-            self.hbox.setRange(1, self.height)
-            self.xRes = self.doc.xRes()
-            self.yRes = self.doc.yRes()
+        self.saveInfo.setProperty('subsampling', 0)  
     
     # function called when splitButton is clicked, splits the current active layer and saves the splits to given folder
     def on_splitButton_clicked(self):
@@ -162,4 +134,24 @@ class GridSplitter(DockWidget):
     # notifies when views are added or removed
     # 'pass' means do not do anything
     def canvasChanged(self, canvas):
-        pass
+        self.window = Krita.instance().activeWindow()
+        if self.window == None:
+            return
+
+        if self.window.activeView() == None:
+            self.width = 0
+            self.height = 0
+            self.wbox.setRange(0, 0)
+            self.hbox.setRange(0, 0)
+            self.doc = None
+            self.xRes = 72
+            self.yRes = 72
+        
+        else:
+            self.doc = self.window.activeView().document()
+            self.width = self.doc.width()
+            self.height = self.doc.height()
+            self.wbox.setRange(1, self.width)
+            self.hbox.setRange(1, self.height)
+            self.xRes = self.doc.xRes()
+            self.yRes = self.doc.yRes()
