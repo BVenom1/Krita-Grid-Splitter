@@ -76,9 +76,10 @@ class GridSplitter(DockWidget):
             self.popup('No seves folder selected, split aborted')
             return
         
-        # set up a progress bar
+        # replace button with progress bar
+        self.splitButton = self.mainWidget.layout().takeRow(3).fieldItem.widget()       # reomve button
         progressBar = QProgressBar(self)
-        self.mainWidget.layout().addRow(progressBar)
+        self.mainWidget.layout().addRow(progressBar)                # insert progress bar in its place
 
         # get base file path to save the splits
         basename = activeNode.uniqueId().toByteArray(1)
@@ -132,7 +133,8 @@ class GridSplitter(DockWidget):
                                 QRect(num_splits_w*sp_w, num_splits_h*sp_h, frac_w, frac_h))
                 progressBar.setValue(progressBar.value()+1)
         
-        self.mainWidget.layout().removeRow(4)       # remove the progress bar
+        self.mainWidget.layout().removeRow(3)       # remove the progress bar
+        self.mainWidget.layout().addRow(self.splitButton)   # add the button back
         self.popup('Active layer has been split')
     
     # generic popup message function
