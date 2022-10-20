@@ -31,6 +31,11 @@ class GridSplitter(DockWidget):
         self.tbox.addItems(['.png', '.jpg', '.jpeg', '.bmp', '.ppm'])
         tlabel = QLabel('save file extension : ', self)
 
+        # set up dropdown prompt to select row-wise or column-wise numbering
+        self.nbox = QComboBox(self)
+        self.nbox.addItems(['row-wise', 'column-wise'])
+        nlabel = QLabel('split numbering :')
+
         # set up button to split the layer and save it
         self.splitButton = QPushButton('split', self)
         self.splitButton.clicked.connect(self.on_splitButton_clicked)
@@ -40,6 +45,7 @@ class GridSplitter(DockWidget):
         self.mainWidget.layout().addRow(wlabel, self.wbox)
         self.mainWidget.layout().addRow(hlabel, self.hbox)
         self.mainWidget.layout().addRow(tlabel, self.tbox)
+        self.mainWidget.layout().addRow(nlabel, self.nbox)
         self.mainWidget.layout().addRow(self.splitButton)
 
         # set up some additional fields
@@ -65,6 +71,8 @@ class GridSplitter(DockWidget):
     
     # function called when splitButton is clicked, splits the current active layer and saves the splits to given folder
     def on_splitButton_clicked(self):
+        splitButtonRow = 4
+
         if self.window == None or len(self.window.views()) == 0:
             self.popup('ERROR: no document is open')
             return
@@ -73,22 +81,28 @@ class GridSplitter(DockWidget):
 
         dirpath = QFileDialog.getExistingDirectory(None, 'Saves folder', '')
         if dirpath == '':
-            self.popup('No seves folder selected, split aborted')
+            self.popup('No saves folder selected, split aborted')
             return
         
         # replace button with progress bar
-        self.splitButton = self.mainWidget.layout().takeRow(3).fieldItem.widget()       # reomve button
+        self.splitButton = self.mainWidget.layout().takeRow(splitButtonRow).fieldItem.widget()       # reomve button
         progressBar = QProgressBar(self)
         self.mainWidget.layout().addRow(progressBar)                # insert progress bar in its place
 
         # get base file path to save the splits
         basename = activeNode.uniqueId().toByteArray(1)
-        filestem = f'{dirpath}/{basename}'
+        filename = f'{dirpath}/{basename}'
 
         # get split width, split height and file extension from docker
         sp_w = self.wbox.value()
         sp_h = self.hbox.value()
         ext = self.tbox.currentText()
+
+        # make a format string for the filenames
+        if self.nbox.currentText() == 'row-wise':
+            filename += '-{row:d}-{column:d}' + ext
+        else:
+            filename += '-{column:d}-{row:d}' + ext
 
         # get number of full splits and dimensions of fractional splits
         num_splits_w = self.width // sp_w
@@ -96,7 +110,7 @@ class GridSplitter(DockWidget):
         frac_w = self.width % sp_w
         frac_h = self.height % sp_h
 
-        # make a progress bar
+        # set the progress bar
         temp1 = num_splits_h
         if frac_h != 0 :
             temp1 += 1
@@ -109,31 +123,31 @@ class GridSplitter(DockWidget):
         # split the images and save them
         for i in range(0, num_splits_h):
             for j in range(0, num_splits_w):                            # block to get all sp_w x sp_h sized splits
-                activeNode.save(f'{filestem}-{i:d}-{j:d}{ext}', 
+                activeNode.save(filename.format(row = i, column = j), 
                                 self.xRes, self.yRes, self.saveInfo,
                                 QRect(j*sp_w, i*sp_h, sp_w, sp_h))
                 progressBar.setValue(progressBar.value()+1)
             
             if frac_w != 0:                                             # block to get all frac_w x sp_h sized splits
-                activeNode.save(f'{filestem}-{i:d}-{num_splits_w:d}{ext}', 
+                activeNode.save(filename.format(row = i, column = num_splits_w), 
                                 self.xRes, self.yRes, self.saveInfo,
                                 QRect(num_splits_w*sp_w, i*sp_h, frac_w, sp_h))
                 progressBar.setValue(progressBar.value()+1)
         
         if frac_h != 0:
             for j in range(0, num_splits_w):                            # block to get all sp_w x frac_h sized splits
-                activeNode.save(f'{filestem}-{num_splits_h:d}-{j:d}{ext}', 
+                activeNode.save(filename.format(row = num_splits_h, column = j), 
                                 self.xRes, self.yRes, self.saveInfo,
                                 QRect(j*sp_w, num_splits_h*sp_h, sp_w, frac_h))
                 progressBar.setValue(progressBar.value()+1)
             
             if frac_w != 0:                                             # block to get the frac_w x frac_h sized split
-                activeNode.save(f'{filestem}-{num_splits_h:d}-{num_splits_w:d}{ext}', 
+                activeNode.save(filename.format(row = num_splits_h, column = num_splits_w), 
                                 self.xRes, self.yRes, self.saveInfo,
                                 QRect(num_splits_w*sp_w, num_splits_h*sp_h, frac_w, frac_h))
                 progressBar.setValue(progressBar.value()+1)
         
-        self.mainWidget.layout().removeRow(3)       # remove the progress bar
+        self.mainWidget.layout().removeRow(splitButtonRow)       # remove the progress bar
         self.mainWidget.layout().addRow(self.splitButton)   # add the button back
         self.popup('Active layer has been split')
     
@@ -168,3 +182,6 @@ class GridSplitter(DockWidget):
             self.hbox.setRange(1, self.height)
             self.xRes = self.doc.xRes()
             self.yRes = self.doc.yRes()
+        
+        self.wbox.setValue(self.wbox.maximum())
+        self.hbox.setValue(self.hbox.maximum())
